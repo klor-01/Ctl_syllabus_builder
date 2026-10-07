@@ -272,6 +272,13 @@ export default function SyllabusBuilder() {
 
   const aiText = d.aiTier === "custom" ? d.aiCustom : AI_POLICIES[d.aiTier].text;
 
+  // Week numbers (1-based) whose topics field is empty. Drives both the
+  // readiness check below and the pre-export confirm.
+  const missingWeeks = d.weeks
+    .map((w, i) => ({ w, n: i + 1 }))
+    .filter(({ w }) => !w.topics?.trim())
+    .map(({ n }) => n);
+
   /* ---------- readiness ---------- */
   const checks = [
     ["Course code, title, term, and credit hours", !!(d.code && d.title && d.term && d.credits)],
@@ -293,6 +300,10 @@ export default function SyllabusBuilder() {
     ["Academic integrity included", d.inc.integrity],
     ["Crisis resources included", d.inc.crisis],
     ["Schedule has at least one entry", d.weeks.some((w) => w.topics || w.dates)],
+    [missingWeeks.length === 0
+      ? "Every week in the schedule has topics"
+      : `Topics missing for week${missingWeeks.length > 1 ? "s" : ""} ${missingWeeks.join(", ")}`,
+      missingWeeks.length === 0],
     ...(d.hasLab ? [
       ["Lab meeting time and location", !!(d.lab.meeting && d.lab.location)],
       ["How the lab counts toward the course grade", !!d.lab.gradeNote],
@@ -480,6 +491,18 @@ export default function SyllabusBuilder() {
     const doc = f.contentWindow.document;
     doc.open(); doc.write(fullHtml()); doc.close();
     setTimeout(() => { f.contentWindow.focus(); f.contentWindow.print(); }, 250);
+  };
+
+  // Warn about weeks with no topics before exporting; run the export only if
+  // the schedule is complete or the user chooses to proceed anyway.
+  const confirmThenExport = (exportFn) => {
+    if (missingWeeks.length > 0) {
+      const ok = window.confirm(
+        `Your schedule is missing topics for week${missingWeeks.length > 1 ? "s" : ""} ${missingWeeks.join(", ")}. Export anyway?`
+      );
+      if (!ok) return;
+    }
+    exportFn();
   };
 
   /* ---------- sections ---------- */
@@ -767,8 +790,8 @@ export default function SyllabusBuilder() {
             </div>
             <Note>Nothing here is stored anywhere. Closing this tab clears it. Save your work as a file, then load that file next time you teach the course and change the dates.</Note>
             <div className="flex flex-wrap gap-2 mb-4">
-              <Btn onClick={exportWord} icon={FileDown} primary>Export to Word</Btn>
-              <Btn onClick={exportPdf} icon={Printer} primary>Export to PDF</Btn>
+              <Btn onClick={() => confirmThenExport(exportWord)} icon={FileDown} primary>Export to Word</Btn>
+              <Btn onClick={() => confirmThenExport(exportPdf)} icon={Printer} primary>Export to PDF</Btn>
             </div>
             <div style={{ fontSize: 12, color: C.slate, marginTop: 14, lineHeight: 1.55 }}>
               Word opens the export as a normal document you can keep editing. PDF opens your browser's print dialog, where you choose Save as PDF. Both come out in Cambria with the UT Martin banner and real Word heading styles, so a screen reader can navigate it.
