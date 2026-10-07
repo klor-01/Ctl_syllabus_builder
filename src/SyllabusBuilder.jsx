@@ -299,6 +299,17 @@ export default function SyllabusBuilder() {
     .filter(({ w }) => !w.topics?.trim())
     .map(({ n }) => n);
 
+  // A full UTM semester is 15 weeks. The schedule is "complete" when there are
+  // at least 15 weeks and each of the first 15 has its topics filled in.
+  const FULL_TERM = 15;
+  const blankInTerm = missingWeeks.filter((n) => n <= FULL_TERM);
+  const fifteenWeeksReady = d.weeks.length >= FULL_TERM && blankInTerm.length === 0;
+  const fifteenWeeksLabel = fifteenWeeksReady
+    ? `All ${FULL_TERM} weeks are filled in`
+    : d.weeks.length < FULL_TERM
+      ? `Schedule has ${d.weeks.length} of ${FULL_TERM} weeks`
+      : `Week${blankInTerm.length > 1 ? "s" : ""} ${blankInTerm.join(", ")} missing topics (all ${FULL_TERM} weeks need topics)`;
+
   /* ---------- readiness ---------- */
   const checks = [
     ["Course code, title, term, and credit hours", !!(d.code && d.title && d.term && d.credits)],
@@ -324,6 +335,7 @@ export default function SyllabusBuilder() {
       ? "Every week in the schedule has topics"
       : `Topics missing for week${missingWeeks.length > 1 ? "s" : ""} ${missingWeeks.join(", ")}`,
       missingWeeks.length === 0],
+    [fifteenWeeksLabel, fifteenWeeksReady],
     ...(d.hasLab ? [
       ["Lab meeting time and location", !!(d.lab.meeting && d.lab.location)],
       ["How the lab counts toward the course grade", !!d.lab.gradeNote],
