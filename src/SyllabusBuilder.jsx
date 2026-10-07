@@ -174,6 +174,26 @@ const FALL_2026 = [
   ["December 14", "Final grades due by 8:30 p.m."],
 ];
 
+/* ---------- weekly schedule dates ---------- */
+// Fall 2026 classes begin Monday, August 24 (see FALL_2026 above). Each week
+// runs Monday through Friday. weekRange(i) returns the date string for the
+// i-th week (0-based), e.g. "August 24 to 28" or "August 31 to September 4".
+const TERM_START = new Date(2026, 7, 24); // month is 0-based: 7 = August
+const MONTHS = ["January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"];
+
+const weekRange = (i) => {
+  const start = new Date(TERM_START);
+  start.setDate(start.getDate() + i * 7);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 4); // Monday + 4 = Friday
+  const startStr = `${MONTHS[start.getMonth()]} ${start.getDate()}`;
+  const endStr = start.getMonth() === end.getMonth()
+    ? `${end.getDate()}`
+    : `${MONTHS[end.getMonth()]} ${end.getDate()}`;
+  return `${startStr} to ${endStr}`;
+};
+
 /* ---------- initial state ---------- */
 
 const blank = {
@@ -189,7 +209,7 @@ const blank = {
   attendance: "", late: "", participation: "",
   aiTier: "mixed", aiCustom: "", profNote: "",
   inc: { integrity: true, accessibility: true, support: true, crisis: true, changes: true },
-  weeks: [{ label: "Week 1", dates: "", topics: "", due: "" }],
+  weeks: [{ label: "Week 1", dates: weekRange(0), topics: "", due: "" }],
   calNote: true,
   hasLab: false,
   lab: {
@@ -748,8 +768,13 @@ export default function SyllabusBuilder() {
               </div>
             ))}
             <div className="flex gap-2 flex-wrap">
-              <Btn onClick={() => push("weeks", { label: `Week ${d.weeks.length + 1}`, dates: "", topics: "", due: "" })} icon={Plus}>Add week</Btn>
-              <Btn onClick={() => setD((p) => ({ ...p, weeks: Array.from({ length: 15 }, (_, i) => p.weeks[i] || { label: `Week ${i + 1}`, dates: "", topics: "", due: "" }) }))}>Build 15 weeks</Btn>
+              <Btn onClick={() => push("weeks", { label: `Week ${d.weeks.length + 1}`, dates: weekRange(d.weeks.length), topics: "", due: "" })} icon={Plus}>Add week</Btn>
+              <Btn onClick={() => setD((p) => ({ ...p, weeks: Array.from({ length: 15 }, (_, i) => {
+                const existing = p.weeks[i];
+                return existing
+                  ? { ...existing, dates: existing.dates || weekRange(i) }
+                  : { label: `Week ${i + 1}`, dates: weekRange(i), topics: "", due: "" };
+              }) }))}>Build 15 weeks</Btn>
             </div>
           </>)}
 
