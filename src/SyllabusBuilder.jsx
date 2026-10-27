@@ -36,6 +36,16 @@ const C = {
   warn: "#B45309",
 };
 
+/* Display menu. Keys match the data-theme values declared in index.css;
+   labels are what the user sees. Preview/export are unaffected — they use C. */
+const THEME_KEY = "utm-syllabus-display";
+const THEMES = [
+  { key: "light", label: "Standard" },
+  { key: "warm",  label: "Blue light" },
+  { key: "amber", label: "Blue light+" },
+  { key: "dark",  label: "Dark" },
+];
+
 const UI = {
   wash: "var(--wash)",
   paper: "var(--paper)",
@@ -562,9 +572,15 @@ export default function SyllabusBuilder() {
     return () => window.removeEventListener("beforeunload", warnBeforeUnload);
   }, [hasUnsavedChanges]);
   const [tab, setTab] = useState(0);
-  const [theme,setTheme] = useState('light');
+  const [theme,setTheme] = useState(() => {
+    try {
+      const k = window.localStorage.getItem(THEME_KEY);
+      return THEMES.some((t) => t.key === k) ? k : "light";
+    } catch { return "light"; }
+  });
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
+    try { window.localStorage.setItem(THEME_KEY, theme); } catch {}
   }, [theme]);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [weekCount, setWeekCount] = useState("15");
@@ -1110,12 +1126,22 @@ export default function SyllabusBuilder() {
               </button>
             );
           })}
-          <button
-          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-          style={{margin: 12, padding: "6px 10px", borderRadius: 4, cursor: "pointer",
-            background: UI.paper, color: UI.ink, border: '1px solid ${UI.line}'}}>
-          {theme === "light" ? "Dark mode" : "Light mode"}
-            </button>
+          <div style={{ margin: 12 }}>
+            <label htmlFor="theme-select"
+              style={{ display: "block", fontSize: 11, color: UI.muted, marginBottom: 4 }}>
+              Display
+            </label>
+            <select
+              id="theme-select"
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              style={{ width: "100%", padding: "6px 8px", borderRadius: 4, cursor: "pointer",
+                background: UI.paper, color: UI.ink, border: `1px solid ${UI.line}` }}>
+              {THEMES.map((t) => (
+                <option key={t.key} value={t.key}>{t.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* form */}
